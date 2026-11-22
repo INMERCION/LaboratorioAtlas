@@ -28,23 +28,50 @@ router.post("/login", async (req, res) => {
     }
 
     // Obtener el empresa_usuario id y empresa_id más reciente para este usuario
+    
+    // Obtener empresa y rol real del usuario autenticado
     const empresaUsuarioResult = await pool.query(
-      "SELECT id, empresa_id FROM empresa_usuarios WHERE usuario_id = $1 ORDER BY id DESC LIMIT 1",
+      `
+      SELECT
+        eu.id,
+        eu.empresa_id,
+        eu.rol_id,
+        r.nombre AS rol_nombre
+      FROM empresa_usuarios eu
+      INNER JOIN roles r ON r.id = eu.rol_id
+      WHERE eu.usuario_id = $1
+      ORDER BY eu.id DESC
+      LIMIT 1
+      `,
       [user.id]
     );
-    const empresaUsuarioId = empresaUsuarioResult.rows.length > 0 
-      ? empresaUsuarioResult.rows[0].id 
-      : null;
-    const empresaId = empresaUsuarioResult.rows.length > 0 
-      ? empresaUsuarioResult.rows[0].empresa_id 
-      : null;
+
+    // No permitir sesiones sin asociación válida
+    if (empresaUsuarioResult.rows.length === 0) {
+      return res.status(403).json({
+        error: "Usuario sin empresa o rol asignado"
+      });
+    }
+
+    const empresaUsuario = empresaUsuarioResult.rows[0];
+
+    const empresaUsuarioId = empresaUsuario.id;
+    const empresaId = empresaUsuario.empresa_id;
+    const rol = empresaUsuario.rol_nombre.toLowerCase();
+
+    if (!["administrador", "editor"].includes(rol)) {
+      return res.status(403).json({
+        error: "Rol no autorizado"
+      });
+    }
 
     const token = jwt.sign(
-      { 
-        usuarioId: user.id, 
+      {
+        usuarioId: user.id,
         nombreUsuario: user.nombre_usuario,
         empresaUsuarioId: empresaUsuarioId,
-        empresaId: empresaId
+        empresaId: empresaId,
+        rol: rol
       },
       JWT_SECRET,
       { expiresIn: "2h" }

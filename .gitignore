@@ -1,5 +1,11 @@
 .env
 .env.*
 !.env.example
+
+node_modules/
 BACKEND/node_modules/
 FRONTEND/node_modules/
+
+cypress/videos/
+cypress/screenshots/
+cypress.env.json

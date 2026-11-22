@@ -11,9 +11,13 @@ export default function AuthProvider({ children }) {
     const u = localStorage.getItem("user");
     return u ? JSON.parse(u) : null;
   });
-  const [role, setRole] = useState(
-    () => localStorage.getItem("role") || "administrador"
-  );
+  const [role, setRole] = useState(() => {
+    const savedRole = localStorage.getItem("role");
+
+    return ["administrador", "editor"].includes(savedRole)
+      ? savedRole
+      : null;
+  });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -49,20 +53,37 @@ export default function AuthProvider({ children }) {
       setUser(userData);
       localStorage.setItem("user", JSON.stringify(userData));
       // Si el backend provee rol, léelo; por ahora mantenemos localStorage
-      const r = localStorage.getItem("role") || "administrador";
-      setRole(r);
-      localStorage.setItem("role", r);
+      
+      // Obtener el rol desde el JWT emitido por el backend
+      const rolBackend = decodedToken?.rol?.toLowerCase();
+
+      // Validar el rol recibido
+      if (!["administrador", "editor"].includes(rolBackend)) {
+        throw new Error("El servidor no proporcionó un rol válido");
+      }
+
+      // Actualizar el rol autenticado
+      setRole(rolBackend);
+      localStorage.setItem("role", rolBackend);
+
     } finally {
       setLoading(false);
     }
   };
 
+  
   const logout = () => {
     setToken(null);
     setUser(null);
+    setRole(null);
+
+    setAuthToken(null);
+
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("role");
   };
+
 
   const value = useMemo(
     () => ({ token, user, role, setRole, loading, login, logout }),

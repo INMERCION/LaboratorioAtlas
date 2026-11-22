@@ -1,6 +1,7 @@
 const express = require("express");
 const { pool } = require("../db");
 const jwt = require("jsonwebtoken");
+const { requireAdmin } = require("../middleware/authorize");
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || "inseguro";
@@ -90,7 +91,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Actualizar usuario
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireAdmin, async (req, res) => {
   const { nombre_usuario, contrasena_hash, correo } = req.body;
   try {
     const result = await pool.query(
@@ -120,7 +121,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // Eliminar usuario
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(
       "DELETE FROM usuarios WHERE id=$1 RETURNING *",

@@ -19,7 +19,31 @@ const metricasRoutes = require("./routes/metricas");
 
 const app = express();
 
-app.use(cors());
+
+const allowedOrigins = [
+  "http://localhost:3350",
+  "http://127.0.0.1:3350"
+];
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Permitir solicitudes sin Origin
+      // (por ejemplo, herramientas de backend).
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // No autorizar otros orígenes.
+      return callback(null, false);
+    },
+
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: false
+  })
+);
+
 app.use(express.json());
 app.use(morgan("dev"));
 
